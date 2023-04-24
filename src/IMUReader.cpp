@@ -1,4 +1,5 @@
 #include <IMUReader.h>
+#include <Arduino_LSM6DS3.h>
 
 
 void IMUReader::AddMeasurement(size_t AccX, size_t AccY, size_t AccZ, size_t GyroX, size_t GyroY, size_t GyroZ)
