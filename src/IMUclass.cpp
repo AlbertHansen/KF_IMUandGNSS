@@ -7,35 +7,34 @@ using namespace std;
 
 
 
-void IMUsetup(){
-  if (!IMU.begin()) 
-    {
-      Serial.println("Failed to initialize IMU! Halting.");
-      while (1);
-    }
-  Serial.print("Accelerometer sample rate = ");
-  Serial.print(IMU.accelerationSampleRate());
-  Serial.println(" Hz");
-  Serial.print("Gyro sample rate = ");
-  Serial.print(IMU.gyroscopeSampleRate());
-  Serial.println(" Hz");
-}
-
-
 
 int IMUreader::AddMeasurement(float AccX, float AccY, float AccZ, float GyroX, float GyroY, float GyroZ){
+  Serial.println(AccX);
+  Serial.println(AccY);
+  Serial.println(AccZ);
+  Serial.println(GyroX);
+  Serial.println(GyroY);
+  Serial.println(GyroZ);
   Measurements.at(MeasurementIndex).AccData.AccX = AccX;
   Measurements.at(MeasurementIndex).AccData.AccY = AccY;
   Measurements.at(MeasurementIndex).AccData.AccZ = AccZ;
   Measurements.at(MeasurementIndex).GyroData.pitch = GyroX;
   Measurements.at(MeasurementIndex).GyroData.roll = GyroY;
   Measurements.at(MeasurementIndex).GyroData.yaw = GyroZ;
-  return((MeasurementIndex < IMUREADER_OPTIONS.Windowsize - 1) ? MeasurementIndex++ : MeasurementIndex = 0); 
-    //Add an indicator of overflow and return true if index is more than N-1
+  if (MeasurementIndex > IMUREADER_OPTIONS.Windowsize - 1)
+  {
+    MeasurementIndex = 0;
+    Serial.println("MeasurementIndex reset to 0");
+  }
+  else
+  {
+    MeasurementIndex++;
+    return(MeasurementIndex);
+  }
 }
 
 
-void IMUreader::GetMeasurement(){
+int IMUreader::GetMeasurement(){
   float AccX { 0 };
   float AccY { 0 };
   float AccZ { 0 };
@@ -51,8 +50,44 @@ void IMUreader::GetMeasurement(){
   {
     IMU.readGyroscope(GyroX, GyroY, GyroZ);
   }
-  IMUreader::AddMeasurement(AccX, AccY, AccZ, GyroX, GyroY, GyroZ);
-  Serial.print("AccX: ");
+  return(AddMeasurement(AccX, AccY, AccZ, GyroX, GyroY, GyroZ));
+}
+
+void IMUreader::GetAccMean(){
+  Serial.println("GetAccMean");
+  float AccXMean { 0 };
+  float AccYMean { 0 };
+  float AccZMean { 0 };
+  for (int i = 0; i < IMUREADER_OPTIONS.Windowsize; i++)
+  {
+    AccXMean += Measurements.at(i).AccData.AccX;
+    AccYMean += Measurements.at(i).AccData.AccY;
+    AccZMean += Measurements.at(i).AccData.AccZ;
+  }
+  AccXMean /= IMUREADER_OPTIONS.Windowsize;
+  AccYMean /= IMUREADER_OPTIONS.Windowsize;
+  AccZMean /= IMUREADER_OPTIONS.Windowsize;
+
+  Serial.println(AccXMean);
+  Serial.println(AccYMean);
+  Serial.println(AccZMean);
+
 }
 
 
+void IMUreader::GetGyroMean(){
+  float GyroXMean { 0 };
+  float GyroYMean { 0 };
+  float GyroZMean { 0 };
+  for (int i = 0; i < IMUREADER_OPTIONS.Windowsize; i++)
+  {
+    GyroXMean += Measurements.at(i).GyroData.pitch;
+    GyroYMean += Measurements.at(i).GyroData.roll;
+    GyroZMean += Measurements.at(i).GyroData.yaw;
+  }
+  GyroXMean /= IMUREADER_OPTIONS.Windowsize;
+  GyroYMean /= IMUREADER_OPTIONS.Windowsize;
+  GyroZMean /= IMUREADER_OPTIONS.Windowsize;
+
+
+}

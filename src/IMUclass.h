@@ -9,7 +9,7 @@
 
 constexpr struct OPTIONS
 {
-    int Windowsize = 200;
+    int Windowsize = 10;
 } IMUREADER_OPTIONS;
 
 
@@ -17,9 +17,9 @@ class IMUreader
 {
     public:
         int AddMeasurement(float AccX, float AccY, float AccZ, float GyroX, float GyroY, float GyroZ);
-        void GetMeasurement();
-        void GetAccMean() const;
-        void GetGyroMean() const;
+        int GetMeasurement();
+        void GetAccMean();
+        void GetGyroMean();
 
         class Measurement
         {
@@ -48,7 +48,4 @@ class IMUreader
 };
 
 #endif
-
-
-
 

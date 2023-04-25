@@ -1,7 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <LinearAlgebra.h>
-#include <IMUReader.h>
+#include <IMUclass.h>
+#include <Arduino_LSM6DS3.h>
 
 constexpr struct Settings
 {
@@ -78,11 +79,27 @@ void setup()
 {
   Serial.begin(KF_SETTINGS.BAUDRATE);
   while(!Serial);
-  // std::cout << "Velocity: " <<std:endl;
+  if (!IMU.begin()) 
+    {
+      Serial.println("Failed to initialize IMU! Halting.");
+      while (1);
+    }
+  Serial.print("Accelerometer sample rate = ");
+  Serial.print(IMU.accelerationSampleRate());
+  Serial.println(" Hz");
+  Serial.print("Gyro sample rate = ");
+  Serial.print(IMU.gyroscopeSampleRate());
+  Serial.println(" Hz");
+    // std::cout << "Velocity: " <<std:endl;
 }
 
 // init previous time
 float t_prev = 0;
+
+IMUreader IMUFUCK;
+
+int x = {0};
+int Hello = {0};
 
 void loop()
 {
@@ -128,5 +145,17 @@ void loop()
 
   // Update previous time
   t_prev = t_curr;
-  
+
+
+  Hello = IMUFUCK.GetMeasurement();
+  Serial.println("Hello");
+  Serial.println(Hello);
+
+ if (Hello < IMUREADER_OPTIONS.Windowsize ){
+  Serial.println("JEG REGNER MEAN NU");
+  IMUFUCK.GetAccMean();
+  Serial.println(" JEG HAR REGNT FÆRDIG)");
+  Hello = 0;
+ }
+
 }
