@@ -1,42 +1,54 @@
 // www.moodle.aau.dk/mod/page/view.php?id=1535313
-#include <array>
-#include <algorithm>
-#include <tuple>
+#ifndef IMUclass_H_
+#define IMUclass_H_
+
 #include <Arduino.h>
-#include <string>
-#include <Arduino_LSM6DS3.h>
+#include <tuple>
+#include <array>
 
 
-std::string s;
-
-template <size_t N>
-class IMUReader
+constexpr struct OPTIONS
 {
-  public:
-    IMUReader() = default;
+    int Windowsize = 200;
+} IMUREADER_OPTIONS;
 
-    bool AddMeasurement();
 
-    class AccGyroMeasurement
-    {
+class IMUreader
+{
     public:
-        struct AccData
-        {
-          float AccX {0.f};
-          float AccY {0.f};
-          float AccZ {0.f};
-        };
-        struct GyroData
-        {
-          float GyroX {0.f};
-          float GyroY {0.f};
-          float GyroZ {0.f};
-        };
-    private:
-    };
+        int AddMeasurement(float AccX, float AccY, float AccZ, float GyroX, float GyroY, float GyroZ);
+        void GetMeasurement();
+        void GetAccMean() const;
+        void GetGyroMean() const;
 
-  private:
-    std::array<AccGyroMeasurement, N> Measurements;
-    uint64_t index{0};
+        class Measurement
+        {
+            public:
+                struct AccelerationData
+                {
+                    float AccX { 0 };
+                    float AccY { 0 };
+                    float AccZ { 0 };
+                } AccData;
+
+                struct GyroData
+                {
+                    float pitch { 0 };
+                    float roll  { 0 };
+                    float yaw   { 0 };
+                } GyroData;
+                
+            private:
+        };
+
+    private:
+        std::array<Measurement, IMUREADER_OPTIONS.Windowsize> Measurements;
+        int MeasurementIndex { 0 };
+        int MeasurementCount { 0 };
 };
+
+#endif
+
+
+
 

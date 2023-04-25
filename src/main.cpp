@@ -1,8 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <LinearAlgebra.h>
-//#include "IMUReader.h"
-#include <IMUclass.
+#include <IMUReader.h>
 
 constexpr struct Settings
 {
