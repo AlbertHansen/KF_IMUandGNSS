@@ -4,6 +4,11 @@
 #include <IMUclass.h>
 #include <Arduino_LSM6DS3.h>
 
+constexpr struct Settings
+{
+  size_t BAUDRATE { 115200 };
+} KF_SETTINGS;
+
 std::vector<std::vector<float>> SampleAccGyro()
 {
   std::vector<std::vector<float>> AccGyro { {0.f}, {0.f}, {0.f}, {0.f}, {0.f}, {0.f} };
@@ -12,76 +17,82 @@ std::vector<std::vector<float>> SampleAccGyro()
   return AccGyro;
 }
 
-constexpr struct Settings
-{
-  float TimeStep { 0.1 };
-  size_t BAUDRATE { 115200 };
-} KF_SETTINGS;
 
-// Define system variables
-std::vector<float> Acc {0.2f, 0.f, 0.f};
-std::vector<float> Vel { 0.f, 0.f, 0.f};
-std::vector<float> Pos { 0.f, 0.f, 0.f};
+//-------------------------------------------------
+// INITIAL state estimate, x_hat = [ position_x position_y position_z velocity_x velocity_y velocity_z]'
+std::vector<std::vector<float>> x_hat {
+    {0.f}, 
+    {0.f}, 
+    {0.f}, 
+    {0.f}, 
+    {0.f}, 
+    {0.f}, 
+    {0.f}, 
+    {0.f}, 
+    {0.f}};
 
-// Define measurement and process noise
-float noise_meas    { 0.2f };
-float noise_process { 0.1f };
+// Control input vector (measurement), u = [acceleration_x acceleration_y acceleration_z]'
+std::vector<std::vector<float>> u {
+    {0.f}, 
+    {0.f}, 
+    {0.f}};
 
-// Define measurement and process covariance matrices
-std::vector<std::vector<float>> R { // Measurement covariance matrix 
-    {noise_meas * noise_meas, 0, 0},        
-    {0, noise_meas * noise_meas, 0}, 
-    {0, 0, noise_meas * noise_meas}};
-std::vector<std::vector<float>> Q { // Process covariance matrix
-    {noise_process * noise_process * KF_SETTINGS.TimeStep * KF_SETTINGS.TimeStep, 0, 0, noise_process*KF_SETTINGS.TimeStep, 0, 0},
-    {0, noise_process * noise_process * KF_SETTINGS.TimeStep * KF_SETTINGS.TimeStep, 0, 0, noise_process*KF_SETTINGS.TimeStep, 0},  
-    {0, 0, noise_process * noise_process * KF_SETTINGS.TimeStep * KF_SETTINGS.TimeStep, 0, 0, noise_process*KF_SETTINGS.TimeStep},  
-    {noise_process*KF_SETTINGS.TimeStep, 0, 0, noise_process * noise_process, 0, 0},  
-    {0, noise_process*KF_SETTINGS.TimeStep, 0, 0, noise_process * noise_process, 0},  
-    {0, 0, noise_process*KF_SETTINGS.TimeStep, 0, 0, noise_process * noise_process}};
+// State transition matrix, F
+float dt = 0.01f;
+std::vector<std::vector<float>> F {
+    {1.f, 0.f, 0.f,  dt, 0.f, 0.f},
+    {0.f, 1.f, 0.f, 0.f,  dt, 0.f},
+    {0.f, 0.f, 1.f, 0.f, 0.f,  dt},
+    {0.f, 0.f, 0.f, 1.f, 0.f, 0.f},
+    {0.f, 0.f, 0.f, 0.f, 1.f, 0.f},
+    {0.f, 0.f, 0.f, 0.f, 0.f, 1.f}};
 
-// Define state variables
-std::vector<std::vector<float>> x_hat { 
-    {Vel.at(0)}, 
-    {Vel.at(1)}, 
-    {Vel.at(2)}, 
-    {Pos.at(0)}, 
-    {Pos.at(1)}, 
-    {Pos.at(2)}}; // State estimate [velocity_x, velocity_y, velocity_z, position_x, position_y, position_z]
+// Control matrix, G
+std::vector<std::vector<float>> G {
+    {0.5f * dt * dt,            0.f,            0.f},
+    {           0.f, 0.5f * dt * dt,            0.f},
+    {           0.f,            0.f, 0.5f * dt * dt},
+    {            dt,            0.f,            0.f},
+    {           0.f,             dt,            0.f},
+    {           0.f,            0.f,             dt}};
 
-std::vector<std::vector<float>> P { // State covariance matrix
-    {1, 0, 0, 0, 0, 0},
-    {0, 1, 0, 0, 0, 0},
-    {0, 0, 1, 0, 0, 0},
-    {0, 0, 0, 1, 0, 0},
-    {0, 0, 0, 0, 1, 0},
-    {0, 0, 0, 0, 0, 1}};
+// INITIAL uncertainty of estimate (covariance matrix) of the current state, P
+std::vector<std::vector<float>> P { 
+    {1.f, 0.f, 0.f, 0.f, 0.f, 0.f}, 
+    {0.f, 1.f, 0.f, 0.f, 0.f, 0.f}, 
+    {0.f, 0.f, 1.f, 0.f, 0.f, 0.f}, 
+    {0.f, 0.f, 0.f, 1.f, 0.f, 0.f}, 
+    {0.f, 0.f, 0.f, 0.f, 1.f, 0.f}, 
+    {0.f, 0.f, 0.f, 0.f, 0.f, 1.f}};
 
-// Define measurement and process models
-std::vector<std::vector<float>> H { // Measurement model
-    {1, 0, 0, 0, 0, 0},
-    {0, 1, 0, 0, 0, 0},
-    {0, 0, 1, 0, 0, 0}};
-std::vector<std::vector<float>> F { // Process model
-    {1, 0, 0, KF_SETTINGS.TimeStep, 0, 0},
-    {0, 1, 0, 0, KF_SETTINGS.TimeStep, 0},
-    {0, 0, 1, 0, 0, KF_SETTINGS.TimeStep},
-    {0, 0, 0, 1, 0, 0},
-    {0, 0, 0, 0, 1, 0},
-    {0, 0, 0, 0, 0, 1}};
+// process noise is a covariance matrix denoted by,  Q
+std::vector<std::vector<float>> Q { 
 
-// Initialize the filter
-std::vector<std::vector<float>> z {{0}, {0}, {0}};  // Measurement vector, Initialize with zero measurement
-std::vector<float> u = {Acc.at(0), Acc.at(1), Acc.at(2)};    // Control input vector
-std::vector<std::vector<float>> I {  // Identity matrix
-    {1, 0, 0, 0, 0, 0},
-    {0, 1, 0, 0, 0, 0},
-    {0, 0, 1, 0, 0, 0},
-    {0, 0, 0, 1, 0, 0},
-    {0, 0, 0, 0, 1, 0},
-    {0, 0, 0, 0, 0, 1}};
+    };
+
+// Measurement matrix, H (used as state selection???)
+ std::vector<std::vector<float>> H { 
+    {1.f, 0.f, 0.f},
+    {0.f, 1.f, 0.f},
+    {0.f, 0.f, 1.f}};
+
+// Identity matrix, I
+std::vector<std::vector<float>> I_6x6 { 
+    {1.f, 0.f, 0.f, 0.f, 0.f, 0.f}, 
+    {0.f, 1.f, 0.f, 0.f, 0.f, 0.f}, 
+    {0.f, 0.f, 1.f, 0.f, 0.f, 0.f}, 
+    {0.f, 0.f, 0.f, 1.f, 0.f, 0.f}, 
+    {0.f, 0.f, 0.f, 0.f, 1.f, 0.f}, 
+    {0.f, 0.f, 0.f, 0.f, 0.f, 1.f}};
+
+// Measurement noise is a covariance matrix denoted by,  R (should be measured)
+std::vector<std::vector<float>> R {
+    {0.f, 0.f, 0.f},
+    {0.f, 0.f, 0.f},
+    {0.f, 0.f, 0.f}};
 
 
+//-------------------------------------------------
 
 void setup()
 {
@@ -98,62 +109,40 @@ void setup()
   Serial.print("Gyro sample rate = ");
   Serial.print(IMU.gyroscopeSampleRate());
   Serial.println(" Hz");
-    // std::cout << "Velocity: " <<std:endl;
 }
 
-// init previous time
-float t_prev = 0;
 
-IMUreader IMUFUCK;
-
-int x = {0};
-int Hello = {0};
+IMUreader IMUobject;
 
 void loop()
 {
-  delay(1000);
-  Serial.println("TEST DUKKER DET OP???");
-  
-  // std::cout << "Velocity: " <<std:endl;
-  // Get current time
-    float t_curr = t_prev + KF_SETTINGS.TimeStep; // getTime();
+  // Initial Estimate is done when initializing x_hat and P
 
-  
-  // Calculate time step
-    float dt = t_curr - t_prev;
-  
-  // Predict next state estimate and covariance
-  std::vector<std::vector<float>> A {
-      {1, 0, 0, dt, 0, 0},
-      {0, 1, 0, 0, dt, 0},
-      {0, 0, 1, 0, 0, dt},
-      {0, 0, 0, 1, 0, 0},
-      {0, 0, 0, 0, 1, 0},
-      {0, 0, 0, 0, 0, 1}};  
-  
-  x_hat = MatrixProduct(F, x_hat);  
-  
-  P = sum(MatrixProduct(A, MatrixProduct(P, transpose(A))), Q);
-  Serial.println("Check 0");
+  // Predict (Time update)
+    // 1. extrapolate the current state estimate to obtain a priori estimate for the next time step
+      // x_hat = F * x_hat + G * u;
+    x_hat = sum(MatrixProduct(F, x_hat), MatrixProduct(G, u));
 
-  // Get measurement
-    // std::vector<std::vector<float>> z = getMeasurement();
+    // 2. extrapolate the error covariance to obtain a priori estimate covariance
+      // P = F * P * F' + Q;
+    P = sum(MatrixProduct(F, MatrixProduct(P, transpose(F))), Q);
 
-  // Update state estimate and covariance
+  // Update (Measurement update)
+    // 0. get measurement
+    std::vector<std::vector<float>> z = SampleAccGyro();
 
-  std::vector<std::vector<float>> y = diff(z, MatrixProduct(H, x_hat));
-  std::vector<std::vector<float>> S = sum(MatrixProduct(H, MatrixProduct(P, transpose(H))), R);
-  std::vector<std::vector<float>> K = MatrixProduct(P, MatrixProduct(transpose(H), inverse(S)));
-  x_hat = sum(x_hat, MatrixProduct(K, y));
-  P = MatrixProduct(diff(I, MatrixProduct(K, H)), P);
+    // 1. compute the Kalman gain
+      // K = P * H' * inv(H * P * H' + R);
+    std::vector<std::vector<float>> K = MatrixProduct(P, MatrixProduct(transpose(H), inverse(sum(MatrixProduct(H, MatrixProduct(P, transpose(H))), R))));
 
-  // Output state estimate
-  //    std::cout << "Velocity: [" << x_hat(0) << ", " << x_hat(1) << ", " << x_hat(2) << "]" << std::endl;
-  //    std::cout << "Position: [" << x_hat(3) << ", " << x_hat(4) << ", " << x_hat(5) << "]" << std::endl;
+    // 2. update estimate with measurement z
+      // x_hat = x_hat + K * (z - H * x_hat);
+    x_hat = sum(x_hat, MatrixProduct(K, diff(z, MatrixProduct(H, x_hat))));
 
-  // Update previous time
-  t_prev = t_curr;
-  std::vector<std::vector<float>> z = SampleAccGyro();
-  printMatrix(z);
+    // 3. update the error covariance
+      // P = (I - K * H) * P * (I - K * H)' + K * R * K';
+    P = sum(MatrixProduct(diff(I_6x6, MatrixProduct(K, H)), MatrixProduct(P, transpose(diff(I_6x6, MatrixProduct(K, H))))), MatrixProduct(K, MatrixProduct(R, transpose(K))));
 
+  // Print results
+  printMatrix(x_hat);
 }
