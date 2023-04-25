@@ -2,6 +2,8 @@
 #include <vector>
 #include <LinearAlgebra.h>
 #include <IMUReader.h>
+#include "thingProperties.h"
+
 
 constexpr struct Settings
 {
@@ -72,13 +74,18 @@ std::vector<std::vector<float>> I {  // Identity matrix
     {0, 0, 0, 0, 1, 0},
     {0, 0, 0, 0, 0, 1}};
 
-
+void onLedChange() {
+  digitalWrite(LED_BUILTIN, led);
+}
 
 void setup()
 {
   Serial.begin(KF_SETTINGS.BAUDRATE);
   while(!Serial);
   // std::cout << "Velocity: " <<std:endl;
+  pinMode(LED_BUILTIN, OUTPUT);
+  initProperties(); // IOT thing
+  ArduinoCloud.begin(ArduinoIoTPreferredConnection);
 }
 
 // init previous time
@@ -88,6 +95,7 @@ void loop()
 {
   delay(1000);
   Serial.println("TEST DUKKER DET OP???");
+  ArduinoCloud.update();
   
   // std::cout << "Velocity: " <<std:endl;
   // Get current time
