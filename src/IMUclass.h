@@ -5,6 +5,8 @@
 #include <Arduino.h>
 #include <tuple>
 #include <array>
+#include <iostream>
+#include <vector>
 
 
 constexpr struct OPTIONS
@@ -16,10 +18,9 @@ constexpr struct OPTIONS
 class IMUreader
 {
     public:
-        int AddMeasurement(float AccX, float AccY, float AccZ, float GyroX, float GyroY, float GyroZ);
-        int GetMeasurement();
-        void GetAccMean();
-        void GetGyroMean();
+        void AddMeasurement(const std::vector<std::vector<float>>& AccGyroMeasurement);
+        std::vector<std::vector<float>> GetAccMean() const;
+        std::vector<std::vector<float>> GetGyroMean() const;
 
         class Measurement
         {

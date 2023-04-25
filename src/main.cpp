@@ -4,6 +4,14 @@
 #include <IMUclass.h>
 #include <Arduino_LSM6DS3.h>
 
+std::vector<std::vector<float>> SampleAccGyro()
+{
+  std::vector<std::vector<float>> AccGyro { {0.f}, {0.f}, {0.f}, {0.f}, {0.f}, {0.f} };
+  IMU.readAcceleration(AccGyro.at(0).at(0), AccGyro.at(1).at(0), AccGyro.at(2).at(0));
+  IMU.readGyroscope(AccGyro.at(3).at(0), AccGyro.at(4).at(0), AccGyro.at(5).at(0));
+  return AccGyro;
+}
+
 constexpr struct Settings
 {
   float TimeStep { 0.1 };
@@ -145,17 +153,7 @@ void loop()
 
   // Update previous time
   t_prev = t_curr;
-
-
-  Hello = IMUFUCK.GetMeasurement();
-  Serial.println("Hello");
-  Serial.println(Hello);
-
- if (Hello < IMUREADER_OPTIONS.Windowsize ){
-  Serial.println("JEG REGNER MEAN NU");
-  IMUFUCK.GetAccMean();
-  Serial.println(" JEG HAR REGNT FÆRDIG)");
-  Hello = 0;
- }
+  std::vector<std::vector<float>> z = SampleAccGyro();
+  printMatrix(z);
 
 }

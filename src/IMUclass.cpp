@@ -1,93 +1,54 @@
 // www.moodle.aau.dk/mod/page/view.php?id=1535313
-#include <IMUclass.h>
-#include <Arduino_LSM6DS3.h>
-#include <Arduino.h>
-#include <iostream>
-using namespace std;
+#include "IMUclass.h"
 
+void IMUreader::AddMeasurement(const std::vector<std::vector<float>>& AccGyroMeasurement){
 
+  Measurements.at(MeasurementIndex).AccData.AccX    = AccGyroMeasurement.at(0).at(0);
+  Measurements.at(MeasurementIndex).AccData.AccY    = AccGyroMeasurement.at(1).at(0);
+  Measurements.at(MeasurementIndex).AccData.AccZ    = AccGyroMeasurement.at(2).at(0);
+  Measurements.at(MeasurementIndex).GyroData.pitch  = AccGyroMeasurement.at(3).at(0);
+  Measurements.at(MeasurementIndex).GyroData.roll   = AccGyroMeasurement.at(4).at(0);
+  Measurements.at(MeasurementIndex).GyroData.yaw    = AccGyroMeasurement.at(5).at(0);
 
-
-int IMUreader::AddMeasurement(float AccX, float AccY, float AccZ, float GyroX, float GyroY, float GyroZ){
-  Serial.println(AccX);
-  Serial.println(AccY);
-  Serial.println(AccZ);
-  Serial.println(GyroX);
-  Serial.println(GyroY);
-  Serial.println(GyroZ);
-  Measurements.at(MeasurementIndex).AccData.AccX = AccX;
-  Measurements.at(MeasurementIndex).AccData.AccY = AccY;
-  Measurements.at(MeasurementIndex).AccData.AccZ = AccZ;
-  Measurements.at(MeasurementIndex).GyroData.pitch = GyroX;
-  Measurements.at(MeasurementIndex).GyroData.roll = GyroY;
-  Measurements.at(MeasurementIndex).GyroData.yaw = GyroZ;
-  if (MeasurementIndex > IMUREADER_OPTIONS.Windowsize - 1)
+  MeasurementIndex++;
+  if (MeasurementIndex > IMUREADER_OPTIONS.Windowsize)
   {
     MeasurementIndex = 0;
     Serial.println("MeasurementIndex reset to 0");
   }
-  else
-  {
-    MeasurementIndex++;
-    return(MeasurementIndex);
-  }
-}
+};
 
 
-int IMUreader::GetMeasurement(){
-  float AccX { 0 };
-  float AccY { 0 };
-  float AccZ { 0 };
-  float GyroX { 0 };
-  float GyroY { 0 };
-  float GyroZ { 0 };
-
-  if (IMU.accelerationAvailable()) 
-  {
-    IMU.readAcceleration(AccX, AccY, AccZ);
-  }
-  if (IMU.gyroscopeAvailable()) 
-  {
-    IMU.readGyroscope(GyroX, GyroY, GyroZ);
-  }
-  return(AddMeasurement(AccX, AccY, AccZ, GyroX, GyroY, GyroZ));
-}
-
-void IMUreader::GetAccMean(){
+std::vector<std::vector<float>> IMUreader::GetAccMean() const
+{
   Serial.println("GetAccMean");
-  float AccXMean { 0 };
-  float AccYMean { 0 };
-  float AccZMean { 0 };
+  std::vector<std::vector<float>> AccMean { {0.f}, {0.f}, {0.f} };
   for (int i = 0; i < IMUREADER_OPTIONS.Windowsize; i++)
   {
-    AccXMean += Measurements.at(i).AccData.AccX;
-    AccYMean += Measurements.at(i).AccData.AccY;
-    AccZMean += Measurements.at(i).AccData.AccZ;
+    AccMean.at(0).at(0) += Measurements.at(i).AccData.AccX;
+    AccMean.at(1).at(0) += Measurements.at(i).AccData.AccY;
+    AccMean.at(2).at(0) += Measurements.at(i).AccData.AccZ;
   }
-  AccXMean /= IMUREADER_OPTIONS.Windowsize;
-  AccYMean /= IMUREADER_OPTIONS.Windowsize;
-  AccZMean /= IMUREADER_OPTIONS.Windowsize;
-
-  Serial.println(AccXMean);
-  Serial.println(AccYMean);
-  Serial.println(AccZMean);
-
-}
+  AccMean.at(0).at(0) /= IMUREADER_OPTIONS.Windowsize;
+  AccMean.at(1).at(0) /= IMUREADER_OPTIONS.Windowsize;
+  AccMean.at(2).at(0) /= IMUREADER_OPTIONS.Windowsize;
+  return AccMean;
+};
 
 
-void IMUreader::GetGyroMean(){
-  float GyroXMean { 0 };
-  float GyroYMean { 0 };
-  float GyroZMean { 0 };
+std::vector<std::vector<float>> IMUreader::GetGyroMean() const
+{
+  Serial.println("GetGyroMean");
+  std::vector<std::vector<float>> GyroMean { {0.f}, {0.f}, {0.f} };
   for (int i = 0; i < IMUREADER_OPTIONS.Windowsize; i++)
   {
-    GyroXMean += Measurements.at(i).GyroData.pitch;
-    GyroYMean += Measurements.at(i).GyroData.roll;
-    GyroZMean += Measurements.at(i).GyroData.yaw;
+    GyroMean.at(0).at(0) += Measurements.at(i).GyroData.pitch;
+    GyroMean.at(1).at(0) += Measurements.at(i).GyroData.roll;
+    GyroMean.at(2).at(0) += Measurements.at(i).GyroData.yaw;
   }
-  GyroXMean /= IMUREADER_OPTIONS.Windowsize;
-  GyroYMean /= IMUREADER_OPTIONS.Windowsize;
-  GyroZMean /= IMUREADER_OPTIONS.Windowsize;
-
-
-}
+  GyroMean.at(0).at(0) /= IMUREADER_OPTIONS.Windowsize;
+  GyroMean.at(1).at(0) /= IMUREADER_OPTIONS.Windowsize;
+  GyroMean.at(2).at(0) /= IMUREADER_OPTIONS.Windowsize;
+  
+  return GyroMean;
+};
