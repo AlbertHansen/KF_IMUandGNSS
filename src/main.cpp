@@ -15,6 +15,9 @@ std::vector<std::vector<float>> SampleAccGyro()
   std::vector<std::vector<float>> AccGyro { {0.f}, {0.f}};
   float trash {0};
   IMU.readAcceleration(AccGyro.at(0).at(0), AccGyro.at(1).at(0), trash);
+  AccGyro.at(0).at(0) -= 0.447f;
+  AccGyro.at(1).at(0) -= 0.134f;
+
   return AccGyro;
   
   /* MED GYRO
@@ -27,7 +30,7 @@ std::vector<std::vector<float>> SampleAccGyro()
 
 
 //-------------------------------------------------
-// INITIAL state estimate, x_hat = [ position_x position_y velocity_x velocity_y acceleration_x acceleration_y]'
+// INITIAL state estimate, x_hat = [ position_x velocity_x acceleration_x position_y velocity_y acceleration_y]'
 std::vector<std::vector<float>> x_hat {
     {0.f}, 
     {0.f}, 
@@ -44,12 +47,49 @@ std::vector<std::vector<float>> u {
 // State transition matrix, F
 float dt = 0.01f;
 std::vector<std::vector<float>> F {
-    {1.f, 0.f,  dt, 0.f, 0.5*dt*dt, 0.f       },
-    {0.f, 1.f, 0.f,  dt, 0.f      , 0.5*dt*dt },
-    {0.f, 0.f, 1.f, 0.f,  dt      ,  dt       },
-    {0.f, 0.f, 0.f, 1.f, 0.f      ,  dt       },
-    {0.f, 0.f, 0.f, 0.f, 1.f      , 0.f       },
-    {0.f, 0.f, 0.f, 0.f, 0.f      , 1.f       }};
+    {1.f,  dt, 0.5*dt*dt, 0.f, 0.f,       0.f},
+    {0.f, 1.f,        dt, 0.f, 0.f,       0.f},
+    {0.f, 0.f,       1.f, 0.f, 0.f,       0.f},
+    {0.f, 0.f,       0.f, 1.f,  dt, 0.5*dt*dt},
+    {0.f, 0.f,       0.f, 0.f, 1.f,        dt},
+    {0.f, 0.f,       0.f, 0.f, 0.f,       1.f}};
+
+// INITIAL uncertainty of estimate (covariance matrix) of the current state, P
+std::vector<std::vector<float>> P { 
+    {1.f, 1.f, 1.f, 0.f, 0.f, 0.f}, 
+    {1.f, 1.f, 1.f, 0.f, 0.f, 0.f}, 
+    {1.f, 1.f, 1.f, 0.f, 0.f, 0.f}, 
+    {0.f, 0.f, 0.f, 1.f, 1.f, 1.f,}, 
+    {0.f, 0.f, 0.f, 1.f, 1.f, 1.f,}, 
+    {0.f, 0.f, 0.f, 1.f, 1.f, 1.f}};
+
+// process noise is a covariance matrix denoted by,  Q (OBS initiated as zero)
+/*
+std::vector<std::vector<float>> Q { 
+    {0.25f * dt * dt * dt * dt, 0.5f * dt * dt * dt, 0.5f * dt * dt, 0.f, 0.f, 0.f}, 
+    {      0.5f * dt * dt * dt,               dt*dt,             dt, 0.f, 0.f, 0.f}, 
+    {           0.5f * dt * dt,                  dt,            1.f, 0.f, 0.f, 0.f},
+    {0.f, 0.f, 0.f, 0.25f * dt * dt * dt * dt, 0.5f * dt * dt * dt, 0.5f * dt * dt}, 
+    {0.f, 0.f, 0.f,       0.5f * dt * dt * dt,               dt*dt,             dt}, 
+    {0.f, 0.f, 0.f,            0.5f * dt * dt,                  dt,            1.f}};
+*/
+std::vector<std::vector<float>> Q {
+    {0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+    {0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+    {0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+    {0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+    {0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+    {0.f, 0.f, 0.f, 0.f, 0.f, 0.f}};
+
+// Measurement matrix, H (used as state selection)
+ std::vector<std::vector<float>> H { 
+    {0.f, 0.f, 1.f, 0.f, 0.f, 0.f},
+    {0.f, 0.f, 0.f, 0.f, 0.f, 1.f}};
+
+// Measurement noise is a covariance matrix denoted by,  R
+std::vector<std::vector<float>> R {
+    {0.000000972f, 0.f         },
+    {0.f         , 0.000000603f}};
 
 // Control matrix, G
 std::vector<std::vector<float>> G {
@@ -60,28 +100,7 @@ std::vector<std::vector<float>> G {
     {           1.f,            0.f},
     {           0.f,            1.f}};
 
-// INITIAL uncertainty of estimate (covariance matrix) of the current state, P
-std::vector<std::vector<float>> P { 
-    {1.f, 0.f, 0.f, 0.f, 0.f, 0.f}, 
-    {0.f, 1.f, 0.f, 0.f, 0.f, 0.f}, 
-    {0.f, 0.f, 1.f, 0.f, 0.f, 0.f}, 
-    {0.f, 0.f, 0.f, 1.f, 0.f, 0.f}, 
-    {0.f, 0.f, 0.f, 0.f, 1.f, 0.f}, 
-    {0.f, 0.f, 0.f, 0.f, 0.f, 1.f}};
 
-// process noise is a covariance matrix denoted by,  Q (OBS initiated as zero)
-std::vector<std::vector<float>> Q { 
-    {0.f, 0.f, 0.f, 0.f, 0.f, 0.f}, 
-    {0.f, 0.f, 0.f, 0.f, 0.f, 0.f}, 
-    {0.f, 0.f, 0.f, 0.f, 0.f, 0.f}, 
-    {0.f, 0.f, 0.f, 0.f, 0.f, 0.f}, 
-    {0.f, 0.f, 0.f, 0.f, 0.f, 0.f}, 
-    {0.f, 0.f, 0.f, 0.f, 0.f, 0.f}};
-
-// Measurement matrix, H (used as state selection)
- std::vector<std::vector<float>> H { 
-    {0.f, 0.f, 0.f, 0.f, 1.f, 0.f},
-    {0.f, 0.f, 0.f, 0.f, 0.f, 1.f}};
 
 // Identity matrix, I
 std::vector<std::vector<float>> I_6x6 { 
@@ -92,10 +111,7 @@ std::vector<std::vector<float>> I_6x6 {
     {0.f, 0.f, 0.f, 0.f, 1.f, 0.f}, 
     {0.f, 0.f, 0.f, 0.f, 0.f, 1.f}};
 
-// Measurement noise is a covariance matrix denoted by,  R (should be measured)
-std::vector<std::vector<float>> R {
-    {0.000000972f, 0.f         },
-    {0.f         , 0.000000603f}};
+
 
 
 //-------------------------------------------------
@@ -115,6 +131,11 @@ void setup()
   Serial.print("Gyro sample rate = ");
   Serial.print(IMU.gyroscopeSampleRate());
   Serial.println(" Hz");
+    Serial.println("_____ P _____");
+    printMatrix(P);
+    Serial.println("_____ Q _____");
+    printMatrix(Q);
+    Serial.println("_____________");
 }
 
 
@@ -124,6 +145,7 @@ IMUreader IMUobject;
 void loop()
 {
   // Initial Estimate is done when initializing x_hat and P
+  u = SampleAccGyro();
 
 
   // Predict (Time update)
@@ -134,15 +156,17 @@ void loop()
     // 2. extrapolate the error covariance to obtain a priori estimate covariance
       // P = F * P * F' + Q;
     P = sum(MatrixProduct(F, MatrixProduct(P, transpose(F))), Q);
+    // Serial.println("_____________");
+    // printMatrix(P);
 
   // Update (Measurement update)
     // 0. get measurement
-    u = SampleAccGyro();
     std::vector<std::vector<float>> z = MatrixProduct(H, x_hat);
 
     // 1. compute the Kalman gain
       // K = P * H' * inv(H * P * H' + R);
     std::vector<std::vector<float>> K = MatrixProduct(P, MatrixProduct(transpose(H), inverse(sum(MatrixProduct(H, MatrixProduct(P, transpose(H))), R))));
+    Serial.println(K.at(0).at(0), 12);
 
     // 2. update estimate with measurement z
       // x_hat = x_hat + K * (z - H * x_hat);
@@ -154,5 +178,16 @@ void loop()
 
   // Print results
   // printMatrix(x_hat);
-  
+  /*
+  for (size_t i = 4; i < x_hat.size(); i++)
+  {
+    Serial.print(x_hat.at(i).at(0), 12);
+    Serial.print(", ");
+  }
+  Serial.print(u.at(0).at(0), 12);
+  Serial.print(", ");
+  Serial.print(u.at(1).at(0), 12);
+  Serial.println("");
+  */
+ delay(2000);
 }

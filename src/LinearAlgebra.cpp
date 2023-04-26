@@ -40,7 +40,7 @@ void printMatrix(const std::vector<std::vector<float>>& matrix)
   {
     for (size_t j = 0; j < m; j++) 
     {
-      Serial.print(matrix.at(i).at(j));
+      Serial.print(matrix.at(i).at(j), 12);
       Serial.print(" ");
     }
     Serial.println();
