@@ -12,11 +12,11 @@ constexpr struct Settings
 std::vector<std::vector<float>> SampleAccGyro()
 {
   // UDEN GYRO
-  std::vector<std::vector<float>> AccGyro { {0.f}, {0.f}};
+  std::vector<std::vector<float>> AccGyro {{0.f}, {0.f}, {0.f}, {0.f}, {0.f}, {0.f}};
   float trash {0};
-  IMU.readAcceleration(AccGyro.at(0).at(0), AccGyro.at(1).at(0), trash);
-  AccGyro.at(0).at(0) -= 0.447f;
-  AccGyro.at(1).at(0) -= 0.134f;
+  IMU.readAcceleration(AccGyro.at(2).at(0), AccGyro.at(5).at(0), trash);
+  AccGyro.at(0).at(0) += 0.0161f;
+  AccGyro.at(1).at(0) += 0.0190f;
 
   return AccGyro;
   
@@ -64,7 +64,6 @@ std::vector<std::vector<float>> P {
     {0.f, 0.f, 0.f, 1.f, 1.f, 1.f}};
 
 // process noise is a covariance matrix denoted by,  Q (OBS initiated as zero)
-/*
 std::vector<std::vector<float>> Q { 
     {0.25f * dt * dt * dt * dt, 0.5f * dt * dt * dt, 0.5f * dt * dt, 0.f, 0.f, 0.f}, 
     {      0.5f * dt * dt * dt,               dt*dt,             dt, 0.f, 0.f, 0.f}, 
@@ -72,7 +71,8 @@ std::vector<std::vector<float>> Q {
     {0.f, 0.f, 0.f, 0.25f * dt * dt * dt * dt, 0.5f * dt * dt * dt, 0.5f * dt * dt}, 
     {0.f, 0.f, 0.f,       0.5f * dt * dt * dt,               dt*dt,             dt}, 
     {0.f, 0.f, 0.f,            0.5f * dt * dt,                  dt,            1.f}};
-*/
+
+/*
 std::vector<std::vector<float>> Q {
     {0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
     {0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
@@ -80,6 +80,7 @@ std::vector<std::vector<float>> Q {
     {0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
     {0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
     {0.f, 0.f, 0.f, 0.f, 0.f, 0.f}};
+*/
 
 // Measurement matrix, H (used as state selection)
  std::vector<std::vector<float>> H { 
@@ -91,17 +92,6 @@ std::vector<std::vector<float>> R {
     {0.000000972f, 0.f         },
     {0.f         , 0.000000603f}};
 
-// Control matrix, G
-std::vector<std::vector<float>> G {
-    {0.5f * dt * dt,            0.f},
-    {           0.f, 0.5f * dt * dt},
-    {            dt,            0.f},
-    {           0.f,             dt},
-    {           1.f,            0.f},
-    {           0.f,            1.f}};
-
-
-
 // Identity matrix, I
 std::vector<std::vector<float>> I_6x6 { 
     {1.f, 0.f, 0.f, 0.f, 0.f, 0.f}, 
@@ -110,9 +100,6 @@ std::vector<std::vector<float>> I_6x6 {
     {0.f, 0.f, 0.f, 1.f, 0.f, 0.f}, 
     {0.f, 0.f, 0.f, 0.f, 1.f, 0.f}, 
     {0.f, 0.f, 0.f, 0.f, 0.f, 1.f}};
-
-
-
 
 //-------------------------------------------------
 
@@ -150,8 +137,8 @@ void loop()
 
   // Predict (Time update)
     // 1. extrapolate the current state estimate to obtain a priori estimate for the next time step
-      // x_hat = F * x_hat + G * u;
-    x_hat = sum(MatrixProduct(F, x_hat), MatrixProduct(G, u));
+      // x_hat = F * x_hat + G * u; changed to x_hat = F * x_hat
+    x_hat = MatrixProduct(F, x_hat);
 
     // 2. extrapolate the error covariance to obtain a priori estimate covariance
       // P = F * P * F' + Q;
@@ -161,12 +148,13 @@ void loop()
 
   // Update (Measurement update)
     // 0. get measurement
-    std::vector<std::vector<float>> z = MatrixProduct(H, x_hat);
+    std::vector<std::vector<float>> x = SampleAccGyro();
+    std::vector<std::vector<float>> z = MatrixProduct(H, x);
 
     // 1. compute the Kalman gain
       // K = P * H' * inv(H * P * H' + R);
     std::vector<std::vector<float>> K = MatrixProduct(P, MatrixProduct(transpose(H), inverse(sum(MatrixProduct(H, MatrixProduct(P, transpose(H))), R))));
-    Serial.println(K.at(0).at(0), 12);
+    // Serial.println(K.at(0).at(0), 12);
 
     // 2. update estimate with measurement z
       // x_hat = x_hat + K * (z - H * x_hat);
@@ -178,7 +166,7 @@ void loop()
 
   // Print results
   // printMatrix(x_hat);
-  /*
+  
   for (size_t i = 4; i < x_hat.size(); i++)
   {
     Serial.print(x_hat.at(i).at(0), 12);
@@ -188,6 +176,4 @@ void loop()
   Serial.print(", ");
   Serial.print(u.at(1).at(0), 12);
   Serial.println("");
-  */
- delay(2000);
 }
