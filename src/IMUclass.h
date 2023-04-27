@@ -7,6 +7,7 @@
 #include <array>
 #include <iostream>
 #include <vector>
+#include <Arduino_LSM6DS3.h>
 
 
 constexpr struct OPTIONS
@@ -18,6 +19,7 @@ constexpr struct OPTIONS
 class IMUreader
 {
     public:
+        void MakeMeasurements();
         void AddMeasurement(const std::vector<std::vector<float>>& AccGyroMeasurement);
         std::vector<std::vector<float>> GetAccMean() const;
         std::vector<std::vector<float>> GetGyroMean() const;
@@ -46,6 +48,12 @@ class IMUreader
         std::array<Measurement, IMUREADER_OPTIONS.Windowsize> Measurements;
         int MeasurementIndex { 0 };
         int MeasurementCount { 0 };
+        struct Direction
+        {
+            float x { 0 };
+            float y { 0 };
+            float z { 0 };
+        } Direction;
 };
 
 #endif
