@@ -19,7 +19,7 @@ Arduino (Through VSCode)
 
 ## Sensors
 * Built-in IMU on Arduino Nano 33 IoT: LSM6DS3.
-* GNSS sensor: NEO-M9N.
+* <s>GNSS sensor: NEO-M9N.</s>
 
 ## Lectures
 * For the IMU: Lecture 3.
