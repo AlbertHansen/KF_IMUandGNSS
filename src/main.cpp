@@ -84,13 +84,9 @@ std::vector<std::vector<float>> Q {
 
 // Measurement noise is a covariance matrix denoted by,  R
 std::vector<std::vector<float>> R {
-    {0.1f, 0.f         },
-    {0.f         , 0.1f}};
-/*
-std::vector<std::vector<float>> R {
-    {0.000000972f, 0.f         },
-    {0.f         , 0.000000603f}};
-*/
+    {0.1f,  0.f },
+    {0.f ,  0.1f}};
+
 // Identity matrix, I
 std::vector<std::vector<float>> I_6x6 { 
     {1.f, 0.f, 0.f, 0.f, 0.f, 0.f}, 
@@ -131,17 +127,18 @@ void setup()
 
 
 IMUreader IMUobject;
+/*
 void loop()
 {
   IMUobject.MakeMeasurements();
-  print()
+  print();
 }
+*/
 
-/*
 // KALMAN FILTER LOOP
 void loop()
 {
-  size_t loop_timer = millis();
+  // size_t loop_timer = millis();
   // Initial Estimate is done when initializing x_hat and P
   // Predict (Time update)
     // 1. extrapolate the current state estimate to obtain a priori estimate for the next time step
@@ -156,7 +153,15 @@ void loop()
 
   // Update (Measurement update)
     // 0. get measurement
-    std::vector<std::vector<float>> x = SampleAccGyro();
+    IMUobject.MakeMeasurements();
+    std::vector<std::vector<float>> Acc = IMUobject.GetAccMean();
+    std::vector<std::vector<float>> x = {
+        {0},
+        {0},
+        {Acc.at(0).at(0)}, 
+        {0},
+        {0},
+        {Acc.at(1).at(0)}};
     std::vector<std::vector<float>> z = MatrixProduct(H, x);
 
     // 1. compute the Kalman gain
@@ -181,9 +186,10 @@ void loop()
   Serial.print(K.at(0).at(0), 12);
   Serial.print(", ");
   Serial.print(K.at(1).at(0), 12);
+  Serial.print(", ");
+  Serial.print(IMUobject.GetYaw(), 12);
   Serial.println();
+
  // printMatrix(P);
   // Serial.println(millis() - loop_timer);
 }
-
-*/

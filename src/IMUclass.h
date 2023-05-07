@@ -23,6 +23,7 @@ class IMUreader
         void AddMeasurement(const std::vector<std::vector<float>>& AccGyroMeasurement);
         std::vector<std::vector<float>> GetAccMean() const;
         std::vector<std::vector<float>> GetGyroMean() const;
+        float GetYaw() const;
 
         class Measurement
         {

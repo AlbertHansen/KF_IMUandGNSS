@@ -4,32 +4,32 @@
 void IMUreader::MakeMeasurements()
 {
   std::vector<std::vector<float>> currentMeasurement {
-    { 0 },
-    { 0 },
-    { 0 },  
-    { 0 },
-    { 0 },
-    { 0 }}; 
+      { 0 },
+      { 0 },
+      { 0 },  
+      { 0 },
+      { 0 },
+      { 0 }}; 
     
-  std::vector<std::vector<float>> angle { {Direction.x}, {Direction.y}, {Direction.z} };
+  std::vector<std::vector<float>> angle { 
+      {Direction.x}, 
+      {Direction.y}, 
+      {Direction.z}};
   
   for(size_t i = 0; i < IMUREADER_OPTIONS.Windowsize; i++)
   { 
-    size_t start_time = millis();
     IMU.readGyroscope(   currentMeasurement.at(3).at(0), currentMeasurement.at(4).at(0), currentMeasurement.at(5).at(0));
-    size_t end_time = millis();
 
-    angle.at(0).at(0) += currentMeasurement.at(3).at(0) * (end_time - start_time) / 1000.f * 3.14159265359f / 180.f;
-    angle.at(1).at(0) += currentMeasurement.at(4).at(0) * (end_time - start_time) / 1000.f * 3.14159265359f / 180.f;
-    angle.at(2).at(0) += currentMeasurement.at(5).at(0) * (end_time - start_time) / 1000.f * 3.14159265359f / 180.f;
+    // angle.at(2).at(0) += currentMeasurement.at(5).at(0) * (end_time - start_time) / 1000.f * 3.14159265359f / 180.f;  // radians
+    angle.at(2).at(0) += currentMeasurement.at(5).at(0) * (1) / 1000.f * 3.14159265359f / 180.f;  // radians
 
     std::vector<std::vector<float>> accelerationData { {0.f}, {0.f}, {0.f} };
     IMU.readAcceleration(accelerationData.at(0).at(0), accelerationData.at(1).at(0), accelerationData.at(2).at(0));
     
+    
     currentMeasurement.at(0).at(0) = std::cos(angle.at(2).at(0)) * accelerationData.at(0).at(0) + std::sin(angle.at(2).at(0)) * accelerationData.at(1).at(0);
     currentMeasurement.at(1).at(0) = std::cos(angle.at(2).at(0)) * accelerationData.at(1).at(0) + std::sin(angle.at(2).at(0)) * accelerationData.at(0).at(0);
     
-
     AddMeasurement(currentMeasurement);
   }
   Direction.x = angle.at(0).at(0);
@@ -47,18 +47,22 @@ void IMUreader::AddMeasurement(const std::vector<std::vector<float>>& AccGyroMea
   Measurements.at(MeasurementIndex).GyroData.yaw    = AccGyroMeasurement.at(5).at(0);
 
   MeasurementIndex++;
-  if (MeasurementIndex > IMUREADER_OPTIONS.Windowsize)
+  if (MeasurementIndex > IMUREADER_OPTIONS.Windowsize - 1)
   {
     MeasurementIndex = 0;
-    Serial.println("MeasurementIndex reset to 0");
+    // Serial.println("MeasurementIndex reset to 0");
   }
 };
 
 
 std::vector<std::vector<float>> IMUreader::GetAccMean() const
 {
-  Serial.println("GetAccMean");
-  std::vector<std::vector<float>> AccMean { {0.f}, {0.f}, {0.f} };
+  // Serial.println("GetAccMean");
+  std::vector<std::vector<float>> AccMean { 
+      {0.f}, 
+      {0.f}, 
+      {0.f}};
+
   for (int i = 0; i < IMUREADER_OPTIONS.Windowsize; i++)
   {
     AccMean.at(0).at(0) += Measurements.at(i).AccData.AccX;
@@ -74,7 +78,7 @@ std::vector<std::vector<float>> IMUreader::GetAccMean() const
 
 std::vector<std::vector<float>> IMUreader::GetGyroMean() const
 {
-  Serial.println("GetGyroMean");
+  // Serial.println("GetGyroMean");
   std::vector<std::vector<float>> GyroMean { {0.f}, {0.f}, {0.f} };
   for (int i = 0; i < IMUREADER_OPTIONS.Windowsize; i++)
   {
@@ -87,4 +91,8 @@ std::vector<std::vector<float>> IMUreader::GetGyroMean() const
   GyroMean.at(2).at(0) /= IMUREADER_OPTIONS.Windowsize;
   
   return GyroMean;
+};
+float IMUreader::GetYaw() const
+{
+  return Direction.z;
 };
