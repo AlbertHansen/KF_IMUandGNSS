@@ -3,6 +3,7 @@
 #include <LinearAlgebra.h>
 #include <IMUclass.h>
 #include <Arduino_LSM6DS3.h>
+#include "thingProperties.h"
 
 constexpr struct Settings
 {
@@ -39,6 +40,7 @@ std::vector<std::vector<float>> x_hat {
     {0.f}, 
     {0.f}, 
     {0.f}};
+
 
 // State transition matrix, F
 float dt = 0.018f;
@@ -108,6 +110,8 @@ void setup()
       Serial.println("Failed to initialize IMU! Halting.");
       while (1);
     }
+  initProperties(); // IOT thing
+  ArduinoCloud.begin(ArduinoIoTPreferredConnection);
   Serial.print("Accelerometer sample rate = ");
   Serial.print(IMU.accelerationSampleRate());
   Serial.println(" Hz");
@@ -184,21 +188,28 @@ void loop()
     P = sum(MatrixProduct(diff(I_6x6, MatrixProduct(K, H)), MatrixProduct(P, transpose(diff(I_6x6, MatrixProduct(K, H))))), MatrixProduct(K, MatrixProduct(R, transpose(K))));
 
   // Print results 
-  /*
-  for(size_t i = 0; i < x_hat.size(); i++)
-  {
-    Serial.print(x_hat.at(i).at(0), 12);
-    Serial.print(", ");
-  }
-  
-  Serial.print(K.at(0).at(0), 12);
-  Serial.print(", ");
-  Serial.print(K.at(1).at(0), 12);
-  Serial.print(", ");
-  
-  Serial.print(IMUobject.GetYaw(), 12);
-  Serial.println();
-  // printMatrix(P);
+  //for(size_t i = 0; i < x_hat.size(); i++)
+  //{
+  //  Serial.print(x_hat.at(i).at(0), 12);
+  //  Serial.print(", ");
+  //}
+
+  vel_x = x_hat.at(1).at(0);
+  vel_y = x_hat.at(4).at(0);
+  acc_x = x_hat.at(2).at(0);
+  acc_y = x_hat.at(5).at(0);
+  yaw = IMUobject.GetYaw();
+
+
+  //Serial.print(K.at(0).at(0), 12);
+  //Serial.print(", ");
+  //Serial.print(K.at(1).at(0), 12);
+  //Serial.print(", ");
+  //Serial.print(IMUobject.GetYaw(), 12);
+  //Serial.println();
+  ArduinoCloud.update();
+
+ // printMatrix(P);
   // Serial.println(millis() - loop_timer);
   */
 }
