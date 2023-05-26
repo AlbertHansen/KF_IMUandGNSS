@@ -9,6 +9,7 @@ constexpr struct Settings
   size_t BAUDRATE { 115200 };
 } KF_SETTINGS;
 
+/*
 std::vector<std::vector<float>> SampleAccGyro()
 {
   // UDEN GYRO
@@ -19,15 +20,15 @@ std::vector<std::vector<float>> SampleAccGyro()
   AccGyro.at(5).at(0) += 0.0057f;
 
   return AccGyro;
+ 
   
-  /* MED GYRO
+  // MED GYRO
   std::vector<std::vector<float>> AccGyro { {0.f}, {0.f}, {0.f}, {0.f}};
   IMU.readAcceleration(AccGyro.at(0).at(0), AccGyro.at(1).at(0));
   IMU.readGyroscope(AccGyro.at(2).at(0), AccGyro.at(3).at(0));
   return AccGyro;
-  */
 }
-
+ */
 
 //-------------------------------------------------
 // INITIAL state estimate, x_hat = [ position_x velocity_x acceleration_x position_y velocity_y acceleration_y]'
@@ -163,7 +164,12 @@ void loop()
         {0},
         {Acc.at(1).at(0)}};
     std::vector<std::vector<float>> z = MatrixProduct(H, x);
-
+    /*
+    Serial.print(z.at(0).at(0), 12);
+    Serial.print(" ");
+    Serial.println(z.at(1).at(0), 12);
+    */
+    
     // 1. compute the Kalman gain
       // K = P * H' * inv(H * P * H' + R);
     std::vector<std::vector<float>> K = MatrixProduct(P, MatrixProduct(transpose(H), inverse(sum(MatrixProduct(H, MatrixProduct(P, transpose(H))), R))));
@@ -178,18 +184,21 @@ void loop()
     P = sum(MatrixProduct(diff(I_6x6, MatrixProduct(K, H)), MatrixProduct(P, transpose(diff(I_6x6, MatrixProduct(K, H))))), MatrixProduct(K, MatrixProduct(R, transpose(K))));
 
   // Print results 
+  /*
   for(size_t i = 0; i < x_hat.size(); i++)
   {
     Serial.print(x_hat.at(i).at(0), 12);
     Serial.print(", ");
   }
+  
   Serial.print(K.at(0).at(0), 12);
   Serial.print(", ");
   Serial.print(K.at(1).at(0), 12);
   Serial.print(", ");
+  
   Serial.print(IMUobject.GetYaw(), 12);
   Serial.println();
-
- // printMatrix(P);
+  // printMatrix(P);
   // Serial.println(millis() - loop_timer);
+  */
 }

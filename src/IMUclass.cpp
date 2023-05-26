@@ -18,10 +18,12 @@ void IMUreader::MakeMeasurements()
   
   for(size_t i = 0; i < IMUREADER_OPTIONS.Windowsize; i++)
   { 
+    int start_time = millis();
     IMU.readGyroscope(   currentMeasurement.at(3).at(0), currentMeasurement.at(4).at(0), currentMeasurement.at(5).at(0));
+    int end_time = millis();
 
-    // angle.at(2).at(0) += currentMeasurement.at(5).at(0) * (end_time - start_time) / 1000.f * 3.14159265359f / 180.f;  // radians
-    angle.at(2).at(0) += currentMeasurement.at(5).at(0) * (1) / 1000.f * 3.14159265359f / 180.f;  // radians
+    angle.at(2).at(0) += currentMeasurement.at(5).at(0) * (end_time - start_time) / 1000.f * 3.14159265359f / 180.f;  // radians
+    // angle.at(2).at(0) += currentMeasurement.at(5).at(0) * (1) / 1000.f * 3.14159265359f / 180.f;  // radians
 
     std::vector<std::vector<float>> accelerationData { {0.f}, {0.f}, {0.f} };
     IMU.readAcceleration(accelerationData.at(0).at(0), accelerationData.at(1).at(0), accelerationData.at(2).at(0));
@@ -29,7 +31,7 @@ void IMUreader::MakeMeasurements()
     
     currentMeasurement.at(0).at(0) = std::cos(angle.at(2).at(0)) * accelerationData.at(0).at(0) + std::sin(angle.at(2).at(0)) * accelerationData.at(1).at(0);
     currentMeasurement.at(1).at(0) = std::cos(angle.at(2).at(0)) * accelerationData.at(1).at(0) + std::sin(angle.at(2).at(0)) * accelerationData.at(0).at(0);
-    
+
     AddMeasurement(currentMeasurement);
   }
   Direction.x = angle.at(0).at(0);
