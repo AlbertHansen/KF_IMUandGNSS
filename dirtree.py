@@ -4,13 +4,13 @@ import os
 # \usepackage{dirtree}
 
 # E.g. C:/Users/user/Desktop/Folder/ on windows or /root/folder/ on linux.
-dir = 'C:/Users/alber/OneDrive - Aalborg Universitet/GitHub/KF_IMUandGNSS/'
+dir = '/home/greven/Projects/KF_IMUandGNSS/'
 
 # Link to the Github e.g. https://github.com/UnknownDK/ES7-Quantum/
 gitlink = "https://github.com/AlbertHansen/KF_IMUandGNSS/"
 
 # Ignore list. This can be specific files/folders or even file extensions e.g. script.py, secretfolder, .git.
-ignore = [".git", ".csv"]
+ignore = [".git", ".csv", ".pio", ".vscode"]
 
 def list_files(startpath):
     print("\dirtree{%")
