@@ -10,27 +10,6 @@ constexpr struct Settings
   size_t BAUDRATE { 115200 };
 } KF_SETTINGS;
 
-/*
-std::vector<std::vector<float>> SampleAccGyro()
-{
-  // UDEN GYRO
-  std::vector<std::vector<float>> AccGyro {{0.f}, {0.f}, {0.f}, {0.f}, {0.f}, {0.f}};
-  float trash {0};
-  IMU.readAcceleration(AccGyro.at(2).at(0), AccGyro.at(5).at(0), trash);
-  AccGyro.at(2).at(0) += 0.0060f;
-  AccGyro.at(5).at(0) += 0.0057f;
-
-  return AccGyro;
- 
-  
-  // MED GYRO
-  std::vector<std::vector<float>> AccGyro { {0.f}, {0.f}, {0.f}, {0.f}};
-  IMU.readAcceleration(AccGyro.at(0).at(0), AccGyro.at(1).at(0));
-  IMU.readGyroscope(AccGyro.at(2).at(0), AccGyro.at(3).at(0));
-  return AccGyro;
-}
- */
-
 //-------------------------------------------------
 // INITIAL state estimate, x_hat = [ position_x velocity_x acceleration_x position_y velocity_y acceleration_y]'
 std::vector<std::vector<float>> x_hat {
@@ -62,15 +41,6 @@ std::vector<std::vector<float>> P {
     {0.f, 0.f, 0.f, 1.f, 1.f, 1.f}};
 
 // process noise is a covariance matrix denoted by,  Q (OBS initiated as zero)
-/*
-std::vector<std::vector<float>> Q { 
-    {0.25f * dt * dt * dt * dt, 0.5f * dt * dt * dt, 0.5f * dt * dt, 0.f, 0.f, 0.f}, 
-    {      0.5f * dt * dt * dt,               dt*dt,             dt, 0.f, 0.f, 0.f}, 
-    {           0.5f * dt * dt,                  dt,            1.f, 0.f, 0.f, 0.f},
-    {0.f, 0.f, 0.f, 0.25f * dt * dt * dt * dt, 0.5f * dt * dt * dt, 0.5f * dt * dt}, 
-    {0.f, 0.f, 0.f,       0.5f * dt * dt * dt,               dt*dt,             dt}, 
-    {0.f, 0.f, 0.f,            0.5f * dt * dt,                  dt,            1.f}};
-*/
 
 std::vector<std::vector<float>> Q {
     {0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
@@ -130,20 +100,11 @@ void setup()
     printMatrix(R);
 }
 
-
 IMUreader IMUobject;
-/*
-void loop()
-{
-  IMUobject.MakeMeasurements();
-  print();
-}
-*/
 
 // KALMAN FILTER LOOP
 void loop()
 {
-  // size_t loop_timer = millis();
   // Initial Estimate is done when initializing x_hat and P
   // Predict (Time update)
     // 1. extrapolate the current state estimate to obtain a priori estimate for the next time step
@@ -168,11 +129,14 @@ void loop()
         {0},
         {Acc.at(1).at(0)}};
     std::vector<std::vector<float>> z = MatrixProduct(H, x);
-    /*
+    
+    // -------------- print measurement -----------------------//
     Serial.print(z.at(0).at(0), 12);
-    Serial.print(" ");
-    Serial.println(z.at(1).at(0), 12);
-    */
+    Serial.print(", ");
+    Serial.print(z.at(1).at(0), 12);
+    Serial.print(", ");
+    Serial.println(IMUobject.GetYaw(), 12);
+    // --------------------------------------------------------//
     
     // 1. compute the Kalman gain
       // K = P * H' * inv(H * P * H' + R);
@@ -187,28 +151,27 @@ void loop()
       // P = (I - K * H) * P * (I - K * H)' + K * R * K';
     P = sum(MatrixProduct(diff(I_6x6, MatrixProduct(K, H)), MatrixProduct(P, transpose(diff(I_6x6, MatrixProduct(K, H))))), MatrixProduct(K, MatrixProduct(R, transpose(K))));
 
-  // Print results 
-  //for(size_t i = 0; i < x_hat.size(); i++)
-  //{
-  //  Serial.print(x_hat.at(i).at(0), 12);
-  //  Serial.print(", ");
-  //}
 
   vel_x = x_hat.at(1).at(0);
   vel_y = x_hat.at(4).at(0);
   acc_x = x_hat.at(2).at(0);
   acc_y = x_hat.at(5).at(0);
   yaw = IMUobject.GetYaw();
-
-
-  //Serial.print(K.at(0).at(0), 12);
-  //Serial.print(", ");
-  //Serial.print(K.at(1).at(0), 12);
-  //Serial.print(", ");
-  //Serial.print(IMUobject.GetYaw(), 12);
-  //Serial.println();
-  ArduinoCloud.update();
-
- // printMatrix(P);
-  // Serial.println(millis() - loop_timer);
+  ArduinoCloud.update();  
+  //-------------------- Print results --------------------------//
+  /*
+  for(size_t i = 0; i < x_hat.size(); i++)
+  {
+    Serial.print(x_hat.at(i).at(0), 12);
+    Serial.print(", ");
+  }
+  
+  Serial.print(K.at(0).at(0), 12);
+  Serial.print(", ");
+  Serial.print(K.at(1).at(0), 12);
+  Serial.print(", ");
+  Serial.print(IMUobject.GetYaw(), 12);
+  Serial.println();
+  */
+  //-------------------------------------------------------------//
 }
