@@ -4,17 +4,17 @@
 void IMUreader::MakeMeasurements()
 {
   std::vector<std::vector<float>> currentMeasurement {
-      { 0 },
-      { 0 },
-      { 0 },  
-      { 0 },
-      { 0 },
-      { 0 }}; 
+      { 0 },  // acc x measurement
+      { 0 },  // acc y measurement
+      { 0 },  // acc z measurement
+      { 0 }, // omega x measurement
+      { 0 }, // omega y measurement
+      { 0 }}; // omega z measurement
     
   std::vector<std::vector<float>> angle { 
       {Direction.x}, 
       {Direction.y}, 
-      {Direction.z}};
+      {Direction.z}}; // radians
   
   for(size_t i = 0; i < IMUREADER_OPTIONS.Windowsize; i++)
   { 
@@ -28,7 +28,7 @@ void IMUreader::MakeMeasurements()
     std::vector<std::vector<float>> accelerationData { {0.f}, {0.f}, {0.f} };
     IMU.readAcceleration(accelerationData.at(0).at(0), accelerationData.at(1).at(0), accelerationData.at(2).at(0));
     
-    
+    // Correct acceleration angles based on angle.at(2).at(0) (rotation around z-axis)
     currentMeasurement.at(0).at(0) = std::cos(angle.at(2).at(0)) * accelerationData.at(0).at(0) + std::sin(angle.at(2).at(0)) * accelerationData.at(1).at(0);
     currentMeasurement.at(1).at(0) = std::cos(angle.at(2).at(0)) * accelerationData.at(1).at(0) + std::sin(angle.at(2).at(0)) * accelerationData.at(0).at(0);
 
